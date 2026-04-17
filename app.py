@@ -14,7 +14,7 @@ from validator import (
 
 st.set_page_config(page_title="TW Buffett Hybrid Dashboard", layout="wide")
 st.title("TW Buffett Hybrid Dashboard")
-st.caption("Official TWSE/MOPS fundamentals + Yahoo price history, with explicit validation gates.")
+st.caption("Live TWSE data + latest published financial reports + Yahoo price history.")
 
 @st.cache_resource(show_spinner=False)
 def get_loader() -> TwseHybridLoader:
@@ -88,6 +88,9 @@ if run:
         ]
 
     work = work.head(int(top_n)).copy()
+    if work.empty:
+        st.warning("No stocks match current filters.")
+        st.stop()
 
     rows = []
     prog = st.progress(0)
@@ -135,7 +138,17 @@ if run:
 
         st.subheader("Suggested portfolio")
         st.dataframe(
-            passed[["stock_id", "stock_name", "sector", "score", "target_weight"]],
+            passed[
+                [
+                    "stock_id",
+                    "stock_name",
+                    "sector",
+                    "score",
+                    "pe_basis",
+                    "pb_basis",
+                    "target_weight",
+                ]
+            ],
             use_container_width=True,
             height=280,
         )
@@ -150,9 +163,8 @@ if run:
     )
 
 with st.expander("What is validated here"):
-    st.write("- Official listed-company basic information from TWSE/MOPS bulk CSV")
-    st.write("- Official quarterly income statement and balance sheet bulk CSVs")
-    st.write("- Yahoo price history is used for long-horizon backtest price series")
+    st.write("- Live TWSE listed-company quote and valuation datasets")
+    st.write("- EPS/BVPS are from latest published financial reports; ROE/PE/PB are computed from those values")
+    st.write("- Yahoo price history is used for momentum and drawdown calculations")
     st.write("- Validation rejects empty or excessively sparse fundamentals")
     st.write("- ROE sanity range is checked before ranking results")
-    st.write("- Cross-source price-gap validation hook is built in, but needs an official same-day close input source")
